@@ -26,6 +26,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "mpu6050.h"
+#include "gc9a01a.h"
+#include "stdlib.h"
+#include "font.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,12 +51,19 @@
 int test_num = 0;
 mpu6050 my_mpu6050;
 /* USER CODE END Variables */
-/* Definitions for TestTask */
-osThreadId_t TestTaskHandle;
-const osThreadAttr_t TestTask_attributes = {
-  .name = "TestTask",
+/* Definitions for Mpu6050Task */
+osThreadId_t Mpu6050TaskHandle;
+const osThreadAttr_t Mpu6050Task_attributes = {
+  .name = "Mpu6050Task",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for LcdTask */
+osThreadId_t LcdTaskHandle;
+const osThreadAttr_t LcdTask_attributes = {
+  .name = "LcdTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,7 +71,8 @@ const osThreadAttr_t TestTask_attributes = {
 
 /* USER CODE END FunctionPrototypes */
 
-void startTestTask(void *argument);
+void startMpu6050Task(void *argument);
+void startLcdTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -92,8 +103,11 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of TestTask */
-  TestTaskHandle = osThreadNew(startTestTask, NULL, &TestTask_attributes);
+  /* creation of Mpu6050Task */
+  Mpu6050TaskHandle = osThreadNew(startMpu6050Task, NULL, &Mpu6050Task_attributes);
+
+  /* creation of LcdTask */
+  LcdTaskHandle = osThreadNew(startLcdTask, NULL, &LcdTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -105,36 +119,50 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-/* USER CODE BEGIN Header_startTestTask */
+/* USER CODE BEGIN Header_startMpu6050Task */
 /**
-  * @brief  Function implementing the TestTask thread.
+  * @brief  Function implementing the Mpu6050Task thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_startTestTask */
-void startTestTask(void *argument)
+/* USER CODE END Header_startMpu6050Task */
+void startMpu6050Task(void *argument)
 {
-  /* USER CODE BEGIN startTestTask */
-
-
-	WHO_AM_I(&hi2c1);
-	wake_up(&hi2c1);
-	set_dlpf(&hi2c1);
-	set_sample_rate(&hi2c1, 1000);
-	set_sensitivity(&hi2c1, &my_mpu6050, gyro_full_scale_range_2000, accel_full_scale_range_16g);
-
+  /* USER CODE BEGIN startMpu6050Task */
   /* Infinite loop */
   for(;;)
   {
-	  read_gyro(&hi2c1, &my_mpu6050, deg_per_sec);
-	  read_gyro(&hi2c1, &my_mpu6050, raw_data);
-	  cal_Roll_Pitch(&my_mpu6050);
-	  //read_accel(&hi2c1, &my_mpu6050, gravity_acceleration);
-	  //read_accel(&hi2c1, &my_mpu6050, raw_data);
-	  //printf("%f, %f, %f\n", my_mpu6050.roll, my_mpu6050.pitch, my_mpu6050.yaw);
-	  osDelay(10);
+    osDelay(100);
   }
-  /* USER CODE END startTestTask */
+  /* USER CODE END startMpu6050Task */
+}
+
+/* USER CODE BEGIN Header_startLcdTask */
+/**
+* @brief Function implementing the LcdTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startLcdTask */
+void startLcdTask(void *argument)
+{
+  /* USER CODE BEGIN startLcdTask */
+	GC9A01_Initial();
+	int check = 0;
+	//LCD_DrawRectangle(20,20,80,80,RED);
+	ClearScreen2(WHITE);
+	//ClearScreen(RED);
+	//test_fill(&hspi2);
+  /* Infinite loop */
+  for(;;)
+  {
+	  char buffer[256];
+	  itoa(check++,buffer,10);
+	  Gc9a01a_WriteString(50,50,buffer,Font_16x26, RED, WHITE);
+
+	  osDelay(1000);
+  }
+  /* USER CODE END startLcdTask */
 }
 
 /* Private application code --------------------------------------------------*/
