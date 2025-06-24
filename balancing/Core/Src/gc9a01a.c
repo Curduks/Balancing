@@ -605,6 +605,7 @@ void Gc9a01a_WriteString(uint16_t x, uint16_t y, const char* str, FontDef font, 
      LCD_CS_1;
  }
 
+
  //============================================================
  //show gray
 

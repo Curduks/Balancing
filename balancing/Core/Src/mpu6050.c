@@ -14,18 +14,18 @@ void cal_Roll_Pitch(mpu6050* __my_mpu6050){
 	float accel_roll, accel_pitch;
 	float accel_x, accel_y, accel_z;
 
-	accel_x = __my_mpu6050->ac_x_g;
-	accel_y = __my_mpu6050->ac_y_g;
-	accel_z = __my_mpu6050->ac_z_g;
+	accel_x = __my_mpu6050->ac_x_g - bias_ac_x_g;
+	accel_y = __my_mpu6050->ac_y_g - bias_ac_x_g;
+	accel_z = __my_mpu6050->ac_z_g - bias_ac_x_g;
 
 	accel_roll = atan2(accel_y, accel_z) * 180.0f / M_PI;
 	accel_pitch = atan2(-accel_x, sqrt(accel_y*accel_y + accel_z*accel_z)) * 180 / M_PI;
 
 	float gyro_x_dps, gyro_y_dps, gyro_z_dps;
 
-	gyro_x_dps = __my_mpu6050->gy_x_dps;
-	gyro_y_dps = __my_mpu6050->gy_y_dps;
-	gyro_z_dps = __my_mpu6050->gy_z_dps;
+	gyro_x_dps = __my_mpu6050->gy_x_dps - bias_g_x;
+	gyro_y_dps = __my_mpu6050->gy_y_dps - bias_g_y;
+	gyro_z_dps = __my_mpu6050->gy_z_dps - bias_g_z;
 
 	float dt = 0.01; //샘플링 주기 (10ms)
 
@@ -183,9 +183,9 @@ void read_gyro(I2C_HandleTypeDef* hi2c, mpu6050* __my_mpu6050, unit unit_you_wan
 		break;
 
 	case deg_per_sec : //단위 변환을 위해 raw data를 gyro_change_unit_factor로 나눈 값을 저장
-		__my_mpu6050->gy_x_dps = (int16_t)((data_to_read[0] << 8 | data_to_read[1])+bias_raw_x) / __my_mpu6050->gyro_change_unit_factor;
-		__my_mpu6050->gy_y_dps = (int16_t)((data_to_read[2] << 8 | data_to_read[3])+bias_raw_y) / __my_mpu6050->gyro_change_unit_factor;
-		__my_mpu6050->gy_z_dps = (int16_t)((data_to_read[4] << 8 | data_to_read[5])+bias_raw_z) / __my_mpu6050->gyro_change_unit_factor;
+		__my_mpu6050->gy_x_dps = (int16_t)((data_to_read[0] << 8 | data_to_read[1])) / __my_mpu6050->gyro_change_unit_factor;
+		__my_mpu6050->gy_y_dps = (int16_t)((data_to_read[2] << 8 | data_to_read[3])) / __my_mpu6050->gyro_change_unit_factor;
+		__my_mpu6050->gy_z_dps = (int16_t)((data_to_read[4] << 8 | data_to_read[5])) / __my_mpu6050->gyro_change_unit_factor;
 		break;
 
 	default :
@@ -217,9 +217,9 @@ void read_accel(I2C_HandleTypeDef* hi2c, mpu6050* __my_mpu6050, unit unit_you_wa
 		break;
 
 	case gravity_acceleration : //단위 변환을 위해 raw data를 accel_change_unit_factor로 나눈 값을 저장
-		__my_mpu6050->ac_x_g = (int16_t)(data_to_read[0] << 8 | data_to_read[1]) / __my_mpu6050->accel_change_unit_factor;
-		__my_mpu6050->ac_y_g = (int16_t)(data_to_read[2] << 8 | data_to_read[3]) / __my_mpu6050->accel_change_unit_factor;
-		__my_mpu6050->ac_z_g = (int16_t)(data_to_read[4] << 8 | data_to_read[5]) / __my_mpu6050->accel_change_unit_factor;
+		__my_mpu6050->ac_x_g = (int16_t)((data_to_read[0] << 8 | data_to_read[1])) / __my_mpu6050->accel_change_unit_factor;
+		__my_mpu6050->ac_y_g = (int16_t)((data_to_read[2] << 8 | data_to_read[3])) / __my_mpu6050->accel_change_unit_factor;
+		__my_mpu6050->ac_z_g = (int16_t)((data_to_read[4] << 8 | data_to_read[5])) / __my_mpu6050->accel_change_unit_factor;
 		break;
 
 	default :

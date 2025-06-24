@@ -37,13 +37,21 @@
 
 #define gyro_output_rate 8000 // 8kHz
 
-#define bias_gy_x 3.65
-#define bias_gy_y 1.65
-#define bias_gy_z 0.35
+#define bias_raw_x -57
+#define bias_raw_y -27
+#define bias_raw_z -7
 
-#define bias_raw_x 63
-#define bias_raw_y 28
-#define bias_raw_z 7
+#define bias_g_x -3.65
+#define bias_g_y -1.66
+#define bias_g_z -0.41
+
+#define bias_ac_x 387
+#define bias_ac_y 1164
+#define bias_ac_z 1808
+
+#define bias_ac_x_g 0.29
+#define bias_ac_y_g 0.49
+#define bias_ac_z_g 0.91
 
 typedef struct{
 	//raw data에서 다른 단위로 바꿔주는 인자
