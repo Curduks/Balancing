@@ -31,7 +31,7 @@
 #include "stdio.h"
 #include "font.h"
 #include "pid.h"
-#include "rotary_encoder.h"
+#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -69,18 +69,6 @@ const osThreadAttr_t LcdTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
-/* Definitions for RotaryTask */
-osThreadId_t RotaryTaskHandle;
-const osThreadAttr_t RotaryTask_attributes = {
-  .name = "RotaryTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
-};
-/* Definitions for myBinarySem01 */
-osSemaphoreId_t myBinarySem01Handle;
-const osSemaphoreAttr_t myBinarySem01_attributes = {
-  .name = "myBinarySem01"
-};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -89,7 +77,6 @@ const osSemaphoreAttr_t myBinarySem01_attributes = {
 
 void startMpu6050Task(void *argument);
 void startLcdTask(void *argument);
-void StartRotaryTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -106,10 +93,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
-
-  /* Create the semaphores(s) */
-  /* creation of myBinarySem01 */
-  myBinarySem01Handle = osSemaphoreNew(1, 1, &myBinarySem01_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -129,9 +112,6 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of LcdTask */
   LcdTaskHandle = osThreadNew(startLcdTask, NULL, &LcdTask_attributes);
-
-  /* creation of RotaryTask */
-  RotaryTaskHandle = osThreadNew(StartRotaryTask, NULL, &RotaryTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -153,17 +133,35 @@ void MX_FREERTOS_Init(void) {
 void startMpu6050Task(void *argument)
 {
   /* USER CODE BEGIN startMpu6050Task */
+	WHO_AM_I(&hi2c1);
 	wake_up(&hi2c1);
 	set_dlpf(&hi2c1);
 	set_sample_rate(&hi2c1, 1000);
 	set_sensitivity(&hi2c1, &my_mpu6050, gyro_full_scale_range_2000, accel_full_scale_range_16g);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+	HAL_GPIO_WritePin(MOTOR_BREAK_GPIO_Port, MOTOR_BREAK_Pin, GPIO_PIN_SET);
+	float targetAngle = 41.0; // 목표 각도
+	float ANGLE_FIXRATE = 1.5; // [deg/s]
+	float measuredAngle = 0.0; // 측정 각도
+	set_pwm_duty_cycle(0);
+	int8_t check_start = 0;
   /* Infinite loop */
   for(;;)
   {
 	  read_gyro(&hi2c1, &my_mpu6050, deg_per_sec);
 	  read_accel(&hi2c1, &my_mpu6050, gravity_acceleration);
 	  cal_Roll_Pitch(&my_mpu6050);
+	  measuredAngle = my_mpu6050.pitch;
+	  if((int)measuredAngle == (int)targetAngle) check_start = 1; // 목표 각도로 옮겼을 때 부터 시작하기 위해
 
+	  if(check_start != 0){
+		  if(measuredAngle < targetAngle){ // 목표값을 시간과 측정값에 따라 변화
+			  targetAngle += ANGLE_FIXRATE * 0.011;
+		  }else{
+			  targetAngle -= ANGLE_FIXRATE * 0.011;
+		  }
+		  motor_control(&my_mpu6050, pid_control(targetAngle,measuredAngle));
+	  }
 	  osDelay(10);
   }
   /* USER CODE END startMpu6050Task */
@@ -186,12 +184,6 @@ void startLcdTask(void *argument)
 	int roll_after = 0;
 	int pitch_before = (int)my_mpu6050.pitch;
 	int pitch_after = 0;
-	int8_t rotary_menu_before = rotary_encoder_menu_get();
-	int8_t rotary_menu_after = 0;
-	int8_t rotary_pid_before = rotary_encoder_pid_get();
-	int8_t rotary_pid_after = 0;
-	int8_t rotary_lcd[3] = {104,122,140};
-	char rotary_str[3][4] = {{"KP:"},{"KI:"},{"KD:"}};
 	ClearScreen2(WHITE);
 	char buffer[5];
 
@@ -200,14 +192,6 @@ void startLcdTask(void *argument)
 	Gc9a01a_WriteString(40, 68, "pitch:", Font_11x18, BLACK, WHITE);
 	Gc9a01a_WriteString(95,50,"0",Font_11x18, BLACK, WHITE);
 	Gc9a01a_WriteString(106,68,"0",Font_11x18, BLACK, WHITE);
-
-	Gc9a01a_WriteString(40,104,"KP:",Font_11x18, BLACK, WHITE);
-	Gc9a01a_WriteString(40,122,"KI:",Font_11x18, BLACK, WHITE);
-	Gc9a01a_WriteString(40,140,"KD:",Font_11x18, BLACK, WHITE);
-
-	Gc9a01a_WriteString(84,104,PID_getValueToChar(PID_KP),Font_11x18, BLACK, WHITE);
-	Gc9a01a_WriteString(84,122,PID_getValueToChar(PID_KI),Font_11x18, BLACK, WHITE);
-	Gc9a01a_WriteString(84,140,PID_getValueToChar(PID_KD),Font_11x18, BLACK, WHITE);
 
   /* Infinite loop */
   for(;;)
@@ -239,79 +223,12 @@ void startLcdTask(void *argument)
 		  pitch_before = pitch_after;
 	  }
 
-	  if(osSemaphoreAcquire(myBinarySem01Handle, 0) == osOK){
-		  rotary_menu_after = rotary_encoder_menu_get();
-		  rotary_pid_after = rotary_encoder_pid_get();
-
-		  if(rotary_menu_before != rotary_menu_after && rotary_getMode() == ROTARY_ENCODER_MENU){
-			  Gc9a01a_WriteString(40,rotary_lcd[rotary_menu_before], rotary_str[rotary_menu_before],Font_11x18, BLACK, WHITE);
-			  Gc9a01a_WriteString(40,rotary_lcd[rotary_menu_after], rotary_str[rotary_menu_after],Font_11x18, RED, WHITE);
-			  rotary_menu_before = rotary_menu_after;
-		  }
-		  if(rotary_pid_before != rotary_pid_after && rotary_getMode() == ROTARY_ENCODER_PID){
-			  float value = (float)PID_getValue(rotary_encoder_menu_get()) + rotary_encoder_pid_get()/10;
-			  gcvt(value,2, buffer);
-			  for(int i = 0; i < 4; i++){
-				  if(buffer[i] == '\0' || buffer[i] == 165){
-					  buffer[i] = ' ';
-				  }
-			  }
-			  buffer[4] = '\0';
-			  Gc9a01a_WriteString(84,rotary_lcd[rotary_encoder_menu_get()], buffer,Font_11x18, BLACK, WHITE);
-			  rotary_pid_before = rotary_pid_after;
-		  }
-
-		  osSemaphoreRelease(myBinarySem01Handle);
-
-	  }
-
-
 
 	  /* ------------------------------------ */
 
 	  osDelay(30);
   }
   /* USER CODE END startLcdTask */
-}
-
-/* USER CODE BEGIN Header_StartRotaryTask */
-/**
-* @brief Function implementing the RotaryTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartRotaryTask */
-void StartRotaryTask(void *argument)
-{
-  /* USER CODE BEGIN StartRotaryTask */
-	rotary_encoder_init();
-	uint32_t current_tick;
-  /* Infinite loop */
-  for(;;)
-  {
-	  if(osSemaphoreAcquire(myBinarySem01Handle, 0) == osOK){
-		  rotary_encoder_set();
-		  if(!HAL_GPIO_ReadPin(Rotary_switch_GPIO_Port, Rotary_switch_Pin)){ //스위치 눌림
-			  if(rotary_getMode() == ROTARY_ENCODER_MENU){
-				  rotary_setMode(ROTARY_ENCODER_PID);
-				  rotary_encoder_pid_clear();
-				  osDelay(100);
-			  }else{
-				  PID_setValue(rotary_encoder_menu_get(), (float)rotary_encoder_pid_get()/10);
-				  rotary_setMode(ROTARY_ENCODER_MENU);
-				  rotary_encoder_pid_clear();
-				  osDelay(100);
-			  }
-		  }else{
-			  current_tick = HAL_GetTick();
-		  }
-
-		  osSemaphoreRelease(myBinarySem01Handle);
-	  }
-
-	  osDelay(15);
-  }
-  /* USER CODE END StartRotaryTask */
 }
 
 /* Private application code --------------------------------------------------*/

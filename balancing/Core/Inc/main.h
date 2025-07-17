@@ -65,12 +65,14 @@ void Error_Handler(void);
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3
 #define USART_RX_GPIO_Port GPIOA
-#define Rotary_switch_Pin GPIO_PIN_4
-#define Rotary_switch_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define Motor_PWM_Pin GPIO_PIN_6
+#define Motor_PWM_GPIO_Port GPIOA
 #define LCD_SCK_Pin GPIO_PIN_10
 #define LCD_SCK_GPIO_Port GPIOB
+#define MOTOR_DIR_Pin GPIO_PIN_7
+#define MOTOR_DIR_GPIO_Port GPIOC
 #define LCD_DC_Pin GPIO_PIN_8
 #define LCD_DC_GPIO_Port GPIOA
 #define LCD_RST_Pin GPIO_PIN_10
@@ -83,6 +85,8 @@ void Error_Handler(void);
 #define SWO_GPIO_Port GPIOB
 #define LCD_CS_Pin GPIO_PIN_4
 #define LCD_CS_GPIO_Port GPIOB
+#define MOTOR_BREAK_Pin GPIO_PIN_6
+#define MOTOR_BREAK_GPIO_Port GPIOB
 #define MPU6050_SCL_Pin GPIO_PIN_8
 #define MPU6050_SCL_GPIO_Port GPIOB
 #define MPU_6050_SDA_Pin GPIO_PIN_9
