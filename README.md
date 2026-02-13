@@ -1,4 +1,4 @@
-# Reation Wheel - STM32
+# Reaction Wheel - STM32
 ![video1](https://github.com/user-attachments/assets/b2cecd11-195c-4238-af82-f6b1c43db167)
 ![video2](https://github.com/user-attachments/assets/d39afd44-6861-44fd-86ca-28446da09298)
 ![video3](https://github.com/user-attachments/assets/e8181e03-c8ec-44f1-9f09-8656bafafaef)
