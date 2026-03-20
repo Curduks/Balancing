@@ -7,6 +7,7 @@ IMU(MPU6050)로 자세를 추정하고, PID 제어로 모터를 구동해 특정
 ![demo-1](https://github.com/user-attachments/assets/b2cecd11-195c-4238-af82-f6b1c43db167)
 ![demo-2](https://github.com/user-attachments/assets/d39afd44-6861-44fd-86ca-28446da09298)
 ![demo-3](https://github.com/user-attachments/assets/e8181e03-c8ec-44f1-9f09-8656bafafaef)
+<img width="600" height="489" alt="화면 캡처 2026-03-20 160052" src="https://github.com/user-attachments/assets/17b43ff9-6098-4296-b599-84bbe12abce8" />
 
 - Full video: https://github.com/user-attachments/assets/a24ddeb2-01e7-45bb-adb2-de60699e0d9e
 
